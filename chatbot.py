@@ -29,7 +29,6 @@ def init():
             "Report a bug": "mailto:ferdinandchidera49@gmail.com",
         },
     )
-    return embed_model, pinecone_index
     
     
   
@@ -80,7 +79,6 @@ def main():
             asyncio.run(handle_message_updates(st.session_state.all_messages))
             
     if question:
-        context = get_content(question, embed_model, pinecone_index)
         reset_context = is_new_question(embed_model, question, st.session_state.previous_question)
         
         if reset_context:
@@ -90,7 +88,6 @@ def main():
                 SystemMessage(content=prompt),
             ]
         
-        st.session_state.current_context_messages[0].content = f"{prompt}\n\n Context: \n{context}"
         st.session_state.current_context_messages.append(HumanMessage(content=question))
         st.session_state.all_messages.append(HumanMessage(content=question))
         
@@ -100,9 +97,11 @@ def main():
         
         #Formats the current context messages session state to be sent to te model
         message_hist = format_messages(st.session_state.current_context_messages)
+        messages_str = json.dumps(message_hist)
                     
         with st.spinner("Generating response..."):          
-            messages_str = json.dumps(message_hist)
+            context = get_content(question, embed_model, pinecone_index)
+            st.session_state.current_context_messages[0].content = f"{prompt}\n\n Context: \n{context}"
             
             # Query the MODEL
             try:
@@ -118,14 +117,15 @@ def main():
                     clean_res = res.content
                     print(clean_res)
                 except Exception as e2:
-                    raise Exception("An error occurred while generating AI response, please contact the developer.")
+                    st.error("An error occurred while generating AI response, please contact the developer.", icon="⚠️")
+                    return
             
-        st.session_state.current_context_messages.append(AIMessage(content=clean_res))
-        st.session_state.all_messages.append(AIMessage(content=clean_res))
-        st.session_state.previous_question = question
-        
-        with chat_container:
-            asyncio.run(display_new_message(st.session_state.all_messages[-1], len(st.session_state.all_messages)-1))
+            st.session_state.current_context_messages.append(AIMessage(content=clean_res))
+            st.session_state.all_messages.append(AIMessage(content=clean_res))
+            st.session_state.previous_question = question
+            
+            with chat_container:
+                asyncio.run(display_new_message(st.session_state.all_messages[-1], len(st.session_state.all_messages)-1))
                 
 if __name__ == "__main__":
     main()

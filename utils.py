@@ -94,7 +94,8 @@ def display_ai_message(content):
             code = part[9:-3].strip()
             st.code(code, language='python')
         else:
-            st.write(part)
+            escaped_part = re.sub(r'^\s*#', '', part, flags=re.MULTILINE)
+            st.write(escaped_part)
              
 async def handle_message_updates(messages):
     """
