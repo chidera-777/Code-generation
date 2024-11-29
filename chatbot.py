@@ -76,7 +76,7 @@ def main():
     chat_container = st.container()
     question = st.chat_input("Ask me anything about Python programming")
     with chat_container:
-            asyncio.run(handle_message_updates(st.session_state.all_messages))
+        asyncio.run(handle_message_updates(st.session_state.all_messages))
             
     if question:
         reset_context = is_new_question(embed_model, question, st.session_state.previous_question)
@@ -128,4 +128,5 @@ def main():
                 asyncio.run(display_new_message(st.session_state.all_messages[-1], len(st.session_state.all_messages)-1))
                 
 if __name__ == "__main__":
+    init()
     main()

@@ -42,8 +42,8 @@ def is_new_question(model, new_question, old_question, threshold=0.5):
     if not old_question:
         return True
     
-    prev_question_embedding = model.embed_query(old_question)
-    new_question_embedding = model.embed_query(new_question)
+    prev_question_embedding = model.encode(old_question)
+    new_question_embedding = model.encode(new_question)
     cos_sim = cosine_similarity([prev_question_embedding], [new_question_embedding])[0][0]
  
     return cos_sim < threshold

@@ -1,8 +1,9 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone
 import dotenv
 import time
 import os
+
 
 def timer_decorator(func):
     """A simple decorator to time functions."""
@@ -16,11 +17,10 @@ def timer_decorator(func):
 
 dotenv.load_dotenv()
 
-model_path = 'emebed-model'
 
 @timer_decorator
 def load_model():
-    model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+    model = SentenceTransformer("all-mpnet-base-v2")
     return model
 
 
@@ -31,9 +31,9 @@ def initialize_pinecone(api_key):
 
 
 @timer_decorator
-def search_docs(query, model, index, k=3):
+def search_docs(query, embed_model, index, k=3):
     
-    qs = model.embed_query(query)
+    qs = embed_model.encode(query)
     
-    results = index.query(vector = qs, top_k = k, include_metadata = True)
+    results = index.query(vector = qs.tolist(), top_k = k, include_metadata = True)
     return results["matches"] if results["matches"][0]["score"] >= 0.5 else []

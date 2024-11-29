@@ -1,17 +1,24 @@
-FROM python:3.10-slim
+FROM python:3.11.5-slim
 
 #Set working directory
 WORKDIR /app
 
-#Copy requirements.txt and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# #Copy site-packages path
+# COPY code_env/Lib/site-packages /usr/local/lib/python3.11/site-packages
+
 
 #Copy the rest of the application files
-COPY . .
+COPY . /app
+
+# Ensure all dependencies are available
+RUN python -m pip install --no-cache-dir -r requirements.txt
+
 
 #Expose the port
 EXPOSE 8501
+
+RUN chmod +x startup.sh
 
 #Run the startup script
 ENTRYPOINT [ "./startup.sh" ]
