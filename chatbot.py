@@ -128,5 +128,4 @@ def main():
                 asyncio.run(display_new_message(st.session_state.all_messages[-1], len(st.session_state.all_messages)-1))
                 
 if __name__ == "__main__":
-    init()
     main()
