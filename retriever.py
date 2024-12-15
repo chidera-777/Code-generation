@@ -2,7 +2,6 @@ from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone
 import dotenv
 import time
-import os
 
 
 def timer_decorator(func):
