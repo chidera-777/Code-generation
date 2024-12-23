@@ -15,7 +15,9 @@ clarifai-protocol==0.0.6
 click==8.1.7
 colorama==0.4.6
 contextlib2==21.6.0
+dill==0.3.8
 distro==1.9.0
+fastapi==0.115.6
 filelock==3.16.1
 frozenlist==1.5.0
 fsspec==2024.6.1
@@ -48,9 +50,12 @@ MarkupSafe==3.0.2
 mdurl==0.1.2
 mpmath==1.3.0
 multidict==6.1.0
+multiprocess==0.70.16
 narwhals==1.11.1
 networkx==3.4.2
 numpy==1.26.4
+nvidia-cuda-nvrtc-cu12==12.4.127
+nvidia-cuda-runtime-cu12==12.4.127
 openai==1.52.2
 orjson==3.10.10
 packaging==24.1
@@ -88,6 +93,7 @@ six==1.16.0
 smmap==5.0.1
 sniffio==1.3.1
 SQLAlchemy==2.0.36
+starlette==0.41.3
 sympy==1.13.1
 tabulate==0.9.0
 tenacity==9.0.0
@@ -103,6 +109,8 @@ tritonclient==2.50.0
 typing_extensions==4.12.2
 tzdata==2024.2
 urllib3==2.2.3
+uvicorn==0.34.0
 watchdog==5.0.3
 wcwidth==0.2.13
+xxhash==3.5.0
 yarl==1.16.0
