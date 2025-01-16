@@ -11,34 +11,85 @@ from langchain.prompts import (
 )
 from retriever import load_model, initialize_pinecone
 import dotenv
+import asyncio
 from utils import get_content
 import dotenv
 import os
 
 
+# Global variables
 embed_model = None
 pinecone_index = None
+model_ready = asyncio.Event()
+
+
+
+class ModelManager():
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        if not self._initialized:
+            self.embed_model = None
+            self.pinecone_index = None
+            ModelManager._initialized = True
+            
+    async def initialize(self):
+        if self.embed_model is None:
+            try:
+                dotenv.load_dotenv()
+                
+                self.embed_model = load_model()
+                self.pinecone_index = initialize_pinecone(os.getenv('PINECONE_API_KEY'))
+                return True
+            
+            except Exception as e:
+                print(f"Error initializing model: {e}")
+                return False
+        return True
+    
+    def get_models(self):
+        return self.embed_model, self.pinecone_index
+    
+    def is_initialized(self):
+        return self.embed_model is not None and self.pinecone_index is not None
+    
+    
+model_manager = ModelManager()
+
+class GenerateRequest(BaseModel):
+    question: str
+
+async def initialize_model_background():
+    "initializes the model in a background thread"
+    success = await model_manager.initialize()
+    if success:
+        model_ready.set()
+        
 
 @asynccontextmanager
-async def init(app: FastAPI):
+async def lifespan(app: FastAPI):
     """
     Initializes the application.
     :param app: The FastAPI application.
     """
-    global embed_model, pinecone_index
+    asyncio.create_task(initialize_model_background())
+    print("Application startup complete")
+    yield 
     
-    # start-up logic
-    dotenv.load_dotenv()
-    embed_model =load_model()
-    pinecone_index = initialize_pinecone(os.getenv('PINECONE_API_KEY'))
-    
-    yield #Application runs here
+    print("Shutting down...")
+    # Clean up resources if needed
+    model_manager.embed_model = None
+    model_manager.pinecone_index = None
 
 
-app = FastAPI(lifespan=init)
+app = FastAPI(lifespan=lifespan)
 
-class GenerateRequest(BaseModel):
-    question: str
 
 @app.post("/generate")
 async def generate(request: GenerateRequest):
@@ -49,6 +100,23 @@ async def generate(request: GenerateRequest):
     """
     question = request.question
     try:
+        
+        try:
+            await asyncio.wait_for(model_ready.wait(), timeout=30)
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=503, 
+                detail="Model is still initializing. Please try again later."
+            )
+        
+        # Get initialized models
+        embed_model, pinecone_index = model_manager.get_models()
+        if not embed_model or not pinecone_index:
+            raise HTTPException(
+                status_code=503,
+                detail="Models not properly initialized"
+            )
+            
         model_url = "https://clarifai.com/openai/chat-completion/models/GPT-4"
         chat_model = ChatOpenAI(temperature=0.5)
 
