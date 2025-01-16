@@ -15,6 +15,8 @@ import asyncio
 from utils import get_content
 import dotenv
 import os
+import gc
+import torch
 
 
 # Global variables
@@ -42,6 +44,9 @@ class ModelManager():
     async def initialize(self):
         if self.embed_model is None:
             try:
+                gc.collect()
+                torch.cuda.empty_cache() if torch.cuda.is_available() else None
+                
                 dotenv.load_dotenv()
                 
                 self.embed_model = load_model()
@@ -59,17 +64,22 @@ class ModelManager():
     def is_initialized(self):
         return self.embed_model is not None and self.pinecone_index is not None
     
+    def cleanup(self):
+        """Free up memory when needed"""
+        if self.embed_model:
+            del self.embed_model
+            self.embed_model = None
+        if self.pinecone_index:
+            del self.pinecone_index
+            self.pinecone_index = None
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        gc.collect()
+    
     
 model_manager = ModelManager()
 
 class GenerateRequest(BaseModel):
     question: str
-
-async def initialize_model_background():
-    "initializes the model in a background thread"
-    success = await model_manager.initialize()
-    if success:
-        model_ready.set()
         
 
 @asynccontextmanager
@@ -78,15 +88,19 @@ async def lifespan(app: FastAPI):
     Initializes the application.
     :param app: The FastAPI application.
     """
-    asyncio.create_task(initialize_model_background())
-    print("Application startup complete")
-    yield 
+    print("Starting up...")
+    gc.collect()
+    
+    try:
+        await model_manager.initialize()
+        model_ready.set()
+    except Exception as e:
+        print(f"Startup error: {str(e)}")
+    
+    yield
     
     print("Shutting down...")
-    # Clean up resources if needed
-    model_manager.embed_model = None
-    model_manager.pinecone_index = None
-
+    model_manager.cleanup()
 
 app = FastAPI(lifespan=lifespan)
 

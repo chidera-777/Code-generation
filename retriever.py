@@ -19,7 +19,7 @@ dotenv.load_dotenv()
 
 @timer_decorator
 def load_model():
-    model = SentenceTransformer("all-mpnet-base-v2")
+    model = SentenceTransformer("all-mpnet-base-v2", device="cpu")
     return model
 
 
